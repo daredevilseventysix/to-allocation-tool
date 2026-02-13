@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T&O Allocation Tool</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; }
+    h2 { margin-top: 40px; }
+    input[type="number"] { width: 100px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+    th { background: #f4f4f4; }
+    .toggle-btn { margin-left: 10px; cursor: pointer; padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<h1>T&O Allocation Tool</h1>
+
+<h2>Step 1: Total Contract Revenue</h2>
+<label>Total Contract Revenue (USD): <input type="number" id="totalRevenue" value="1000000" onchange="calculate()"></label>
+<br>
+<label>Home Currency (<input type="text" id="homeCurrency" value="MYR" style="width:50px;">) rate to USD: 
+<input type="number" id="currencyRate" value="4.5" onchange="calculate()"></label>
+<button class="toggle-btn" onclick="toggleCurrency()">Toggle Currency</button>
+
+<h2>Step 2: Breakdown by Service</h2>
+
+<h3>S&C</h3>
+<label>Total S&C: <input type="number" id="scTotal" value="400000" onchange="calculate()"></label>
+<br>
+<label>Strategy: <input type="number" id="strategy" value="200000" onchange="calculate()"></label>
+<label>Consulting: <input type="number" id="consulting" value="200000" onchange="calculate()"></label>
+<br>
+<label>% of S&C that is T&O: <input type="number" id="scTO" value="100" onchange="calculate()">%</label>
+
+<h3>Technology</h3>
+<label>SI: <input type="number" id="si" value="300000" onchange="calculate()"></label>
+<label>AMS: <input type="number" id="ams" value="100000" onchange="calculate()"></label>
+<label>IMS: <input type="number" id="ims" value="50000" onchange="calculate()"></label>
+
+<h3>Operations</h3>
+<label>BPMS: <input type="number" id="bpms" value="150000" onchange="calculate()"></label>
+
+<h2>Step 3: Summary Table</h2>
+<label>Unit: 
+<select id="unit" onchange="calculate()">
+    <option value="1000">Thousands</option>
+    <option value="1000000">Millions</option>
+</select>
+</label>
+
+<table id="summaryTable">
+    <thead>
+        <tr>
+            <th>Service Dimension</th>
+            <th>Value</th>
+            <th>% of Total</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+<script>
+let currentCurrency = 'USD';
+
+function calculate() {
+    const totalRevenue = parseFloat(document.getElementById('totalRevenue').value) || 0;
+    const scTotal = parseFloat(document.getElementById('scTotal').value) || 0;
+    const strategy = parseFloat(document.getElementById('strategy').value) || 0;
+    const consulting = parseFloat(document.getElementById('consulting').value) || 0;
+    const scTO = parseFloat(document.getElementById('scTO').value) / 100;
+    const si = parseFloat(document.getElementById('si').value) || 0;
+    const ams = parseFloat(document.getElementById('ams').value) || 0;
+    const ims = parseFloat(document.getElementById('ims').value) || 0;
+    const bpms = parseFloat(document.getElementById('bpms').value) || 0;
+    const unitDiv = parseFloat(document.getElementById('unit').value);
+    const currencyRate = parseFloat(document.getElementById('currencyRate').value) || 1;
+
+    const services = {
+        "Strategy (S&C)": strategy,
+        "Consulting (S&C)": consulting,
+        "S&C Overall": scTotal,
+        "SI (Tech)": si,
+        "AMS (Tech)": ams,
+        "IMS (Tech)": ims,
+        "BPMS (Ops)": bpms
+    };
+
+    // Determine T&O allocation
+    const scTOValue = scTotal * scTO;
+    const blendedTO = (si + ams + ims + bpms) * 1; // assuming 100% T&O for simplicity
+    // Build table rows
+    const tbody = document.getElementById('summaryTable').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = '';
+
+    for (let key in services) {
+        let value = services[key];
+        let toValue = key.includes('S&C') ? (key === "S&C Overall" ? scTOValue : value * scTO) : value; 
+        // Apply currency and unit
+        if (currentCurrency !== 'USD') toValue *= currencyRate;
+        toValue /= unitDiv;
+        const percent = totalRevenue ? ((value / totalRevenue) * 100).toFixed(2) + '%' : '-';
+        const row = `<tr><td>${key}</td><td>${toValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td><td>${percent}</td></tr>`;
+        tbody.innerHTML += row;
+    }
+}
+
+function toggleCurrency() {
+    currentCurrency = currentCurrency === 'USD' ? document.getElementById('homeCurrency').value : 'USD';
+    calculate();
+}
+
+// Initial calculation
+calculate();
+</script>
+
+</body>
+</html>
