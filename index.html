@@ -1,124 +1,176 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>T&O Allocation Tool</title>
 <style>
-    body { font-family: Arial, sans-serif; margin: 20px; max-width: 700px; }
-    input[type="number"] { width: 120px; }
-    input[readonly] { background-color: #eee; }
-    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
-    th { background: #f4f4f4; }
-    .toggle-btn { margin-left: 10px; cursor: pointer; padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px; }
-    #scTOContainer { display:inline-block; margin-left:10px; }
+body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; }
+h2 { margin-top: 30px; }
+
+.row { display: flex; align-items: center; margin-bottom: 10px; }
+.row label { width: 200px; }
+.row input { width: 180px; padding: 5px; text-align: right; }
+
+.readonly { background-color: #f2f2f2; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+th { background: #f4f4f4; }
+th:first-child, td:first-child { text-align: left; }
+
+.capability-table input {
+    width: 80px;
+    text-align: right;
+}
 </style>
 </head>
 <body>
 
 <h1>T&O Allocation Tool</h1>
 
-<h2>Step 1: Enter Service Values</h2>
-<label>S&C: <input type="number" id="sc" value="400000" onchange="calculate()"> </label>
-<span id="scTOContainer">
-    T&O Allocation (S&C): <input type="number" id="scTO" value="400000" onchange="calculate()">
-</span>
-<br>
-<label>Technology: <input type="number" id="tech" value="300000" onchange="calculate()"></label><br>
-<label>Operations: <input type="number" id="ops" value="300000" onchange="calculate()"></label>
+<h2>1. Enter Service Revenues</h2>
 
-<h2>Step 2: Total Revenue & % of Total</h2>
-<label>Total Revenue (auto-calculated): <input type="number" id="totalRevenue" readonly> 100%</label>
+<div class="row">
+<label>S&C</label>
+<input type="text" id="sc" value="400,000" oninput="calculate()">
+</div>
 
-<h2>Step 3: Currency / Units</h2>
-<label>Home Currency (<input type="text" id="homeCurrency" value="MYR" style="width:50px;">) rate to USD: 
-<input type="number" id="currencyRate" value="4.5" onchange="calculate()"></label>
-<button class="toggle-btn" onclick="toggleCurrency()">Toggle Currency</button>
-<label>Unit: 
-<select id="unit" onchange="calculate()">
-    <option value="1000">Thousands</option>
-    <option value="1000000">Millions</option>
-</select>
-</label>
+<div class="row">
+<label>Technology</label>
+<input type="text" id="tech" value="300,000" oninput="calculate()">
+</div>
 
-<h2>Step 4: Summary Table</h2>
-<table id="summaryTable">
-    <thead>
-        <tr>
-            <th>Service</th>
-            <th>Value</th>
-            <th>% of Total</th>
-            <th>T&O Allocation</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
+<div class="row">
+<label>Operations</label>
+<input type="text" id="ops" value="300,000" oninput="calculate()">
+</div>
+
+<div class="row">
+<label><strong>Total Contract Revenue</strong></label>
+<input type="text" id="totalRevenue" class="readonly" readonly>
+<span style="margin-left:10px;">100%</span>
+</div>
+
+<hr>
+
+<div class="row">
+<label><strong>T&O Revenue (S&C)</strong></label>
+<input type="text" id="scTO" value="400,000" oninput="calculate()">
+</div>
+
+<h2>2. Summary</h2>
+
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Total Contract Revenue</th>
+<th>% Contract Revenue</th>
+<th>T&O Revenue</th>
+<th>% T&O Revenue</th>
+</tr>
+</thead>
+<tbody id="summaryTable"></tbody>
 </table>
 
-<p id="tnoPercentDisplay"><strong>T&O Allocation % = </strong> -- </p>
+<p id="finalPercent" style="margin-top:20px;font-weight:bold;"></p>
+
+<h2>3. Capabilities</h2>
+
+<div>
+<label><input type="checkbox" value="Change & Human Experience" onchange="calculate()"> Change & Human Experience</label><br>
+<label><input type="checkbox" value="HRT" onchange="calculate()"> HRT</label><br>
+<label><input type="checkbox" value="Learning & Skilling" onchange="calculate()"> Learning & Skilling</label><br>
+<label><input type="checkbox" value="OM&OD" onchange="calculate()"> OM&OD</label><br>
+<label><input type="checkbox" value="TS&D" onchange="calculate()"> TS&D</label>
+</div>
+
+<table class="capability-table">
+<thead>
+<tr>
+<th>Capability</th>
+<th>% Allocation</th>
+<th>T&O Revenue</th>
+</tr>
+</thead>
+<tbody id="capabilityTable"></tbody>
+</table>
 
 <script>
-let currentCurrency = 'USD';
+function parseNumber(val){
+    return parseFloat(val.replace(/,/g,'')) || 0;
+}
 
-function calculate() {
-    // Get inputs
-    const sc = parseFloat(document.getElementById('sc').value) || 0;
-    const tech = parseFloat(document.getElementById('tech').value) || 0;
-    const ops = parseFloat(document.getElementById('ops').value) || 0;
-    const scTOInput = parseFloat(document.getElementById('scTO').value) || 0;
-    const unitDiv = parseFloat(document.getElementById('unit').value);
-    const currencyRate = parseFloat(document.getElementById('currencyRate').value) || 1;
+function formatNumber(num){
+    return num.toLocaleString(undefined,{minimumFractionDigits:0, maximumFractionDigits:0});
+}
 
-    // Total revenue
-    const totalRevenue = sc + tech + ops;
-    document.getElementById('totalRevenue').value = totalRevenue;
+function calculate(){
 
-    // Show/hide S&C T&O input
-    document.getElementById('scTOContainer').style.display = sc > 0 ? 'inline-block' : 'none';
+    let sc = parseNumber(document.getElementById('sc').value);
+    let tech = parseNumber(document.getElementById('tech').value);
+    let ops = parseNumber(document.getElementById('ops').value);
+    let scTO = parseNumber(document.getElementById('scTO').value);
 
-    // Calculate T&O %
-    const tnoPercent = sc ? (scTOInput / sc) * 100 : 0;
+    let total = sc + tech + ops;
 
-    // Apply T&O % to other services
-    const techTO = tech * tnoPercent / 100;
-    const opsTO = ops * tnoPercent / 100;
+    document.getElementById('totalRevenue').value = formatNumber(total);
 
-    // Apply currency
-    const currencyMultiplier = currentCurrency === 'USD' ? 1 : currencyRate;
+    let tnoPercent = sc ? (scTO / sc) * 100 : 0;
 
-    // Prepare table
-    const services = [
-        {name:'S&C', value: sc, toValue: scTOInput},
-        {name:'Technology', value: tech, toValue: techTO},
-        {name:'Operations', value: ops, toValue: opsTO}
+    let techTO = tech * tnoPercent / 100;
+    let opsTO = ops * tnoPercent / 100;
+
+    let services = [
+        {name:"S&C", value:sc, to:scTO},
+        {name:"Technology", value:tech, to:techTO},
+        {name:"Operations", value:ops, to:opsTO}
     ];
 
-    const tbody = document.getElementById('summaryTable').getElementsByTagName('tbody')[0];
-    tbody.innerHTML = '';
-
-    services.forEach(s => {
-        const displayValue = (s.value * currencyMultiplier / unitDiv).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
-        const displayTO = (s.toValue * currencyMultiplier / unitDiv).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
-        const percentOfTotal = totalRevenue ? ((s.value / totalRevenue) * 100).toFixed(2) + '%' : '-';
-        const row = `<tr>
-                        <td>${s.name}</td>
-                        <td>${displayValue}</td>
-                        <td>${percentOfTotal}</td>
-                        <td>${displayTO}</td>
-                    </tr>`;
-        tbody.innerHTML += row;
+    let table = "";
+    services.forEach(s=>{
+        let percentTotal = total ? (s.value/total*100).toFixed(2) : "0.00";
+        let percentTO = s.value ? (s.to/s.value*100).toFixed(2) : "0.00";
+        table += `<tr>
+            <td>${s.name}</td>
+            <td class="readonly">${formatNumber(s.value)}</td>
+            <td class="readonly">${percentTotal}%</td>
+            <td>${formatNumber(s.to)}</td>
+            <td>${percentTO}%</td>
+        </tr>`;
     });
 
-    // Update T&O %
-    document.getElementById('tnoPercentDisplay').innerHTML = `<strong>T&O Allocation % = </strong> ${tnoPercent.toFixed(2)}%`;
+    document.getElementById('summaryTable').innerHTML = table;
+
+    document.getElementById('finalPercent').innerText =
+        `T&O Allocation % required to meet S&C Revenues = ${tnoPercent.toFixed(2)}%`;
+
+    // Capabilities
+    let checked = document.querySelectorAll('input[type="checkbox"]:checked');
+    let capTable = "";
+    if(checked.length>0){
+
+        let equalPercent = tnoPercent / checked.length;
+
+        checked.forEach(box=>{
+            let revenue = sc * equalPercent / 100;
+            capTable += `<tr>
+                <td>${box.value}</td>
+                <td>${equalPercent.toFixed(2)}%</td>
+                <td>${formatNumber(revenue)}</td>
+            </tr>`;
+        });
+    }
+
+    document.getElementById('capabilityTable').innerHTML = capTable;
+
+    // reformat input fields with commas
+    document.getElementById('sc').value = formatNumber(sc);
+    document.getElementById('tech').value = formatNumber(tech);
+    document.getElementById('ops').value = formatNumber(ops);
+    document.getElementById('scTO').value = formatNumber(scTO);
 }
 
-function toggleCurrency() {
-    currentCurrency = currentCurrency === 'USD' ? document.getElementById('homeCurrency').value : 'USD';
-    calculate();
-}
-
-// Initial calculation
 calculate();
 </script>
 
