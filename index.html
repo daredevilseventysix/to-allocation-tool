@@ -1,177 +1,296 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
 <title>T&O Allocation Tool</title>
 <style>
-body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; }
-h2 { margin-top: 30px; }
+body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+}
 
-.row { display: flex; align-items: center; margin-bottom: 10px; }
-.row label { width: 200px; }
-.row input { width: 180px; padding: 5px; text-align: right; }
+h1 {
+    margin-bottom: 10px;
+}
 
-.readonly { background-color: #f2f2f2; }
+.section {
+    margin-top: 30px;
+}
 
-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
-th { background: #f4f4f4; }
-th:first-child, td:first-child { text-align: left; }
-
-.capability-table input {
-    width: 80px;
+input, select {
+    padding: 6px;
+    width: 180px;
     text-align: right;
+}
+
+input[readonly] {
+    background-color: #f2f2f2;
+}
+
+.service-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.label {
+    width: 200px;
+    text-align: left;
+}
+
+.percent {
+    width: 80px;
+}
+
+table {
+    border-collapse: collapse;
+    margin-top: 20px;
+    width: 700px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: right;
+}
+
+th {
+    background-color: #f5f5f5;
+}
+
+td:first-child, th:first-child {
+    text-align: left;
+}
+
+.not-applicable {
+    background-color: #f3f3f3;
+    font-weight: bold;
 }
 </style>
 </head>
+
 <body>
 
 <h1>T&O Allocation Tool</h1>
 
-<h2>1. Enter Service Revenues</h2>
-
-<div class="row">
-<label>S&C</label>
-<input type="text" id="sc" value="400,000" oninput="calculate()">
-</div>
-
-<div class="row">
-<label>Technology</label>
-<input type="text" id="tech" value="300,000" oninput="calculate()">
-</div>
-
-<div class="row">
-<label>Operations</label>
-<input type="text" id="ops" value="300,000" oninput="calculate()">
-</div>
-
-<div class="row">
-<label><strong>Total Contract Revenue</strong></label>
-<input type="text" id="totalRevenue" class="readonly" readonly>
-<span style="margin-left:10px;">100%</span>
-</div>
-
-<hr>
-
-<div class="row">
-<label><strong>T&O Revenue (S&C)</strong></label>
-<input type="text" id="scTO" value="400,000" oninput="calculate()">
-</div>
-
-<h2>2. Summary</h2>
-
-<table>
-<thead>
-<tr>
-<th>Service</th>
-<th>Total Contract Revenue</th>
-<th>% Contract Revenue</th>
-<th>T&O Revenue</th>
-<th>% T&O Revenue</th>
-</tr>
-</thead>
-<tbody id="summaryTable"></tbody>
-</table>
-
-<p id="finalPercent" style="margin-top:20px;font-weight:bold;"></p>
-
-<h2>3. Capabilities</h2>
-
 <div>
-<label><input type="checkbox" value="Change & Human Experience" onchange="calculate()"> Change & Human Experience</label><br>
-<label><input type="checkbox" value="HRT" onchange="calculate()"> HRT</label><br>
-<label><input type="checkbox" value="Learning & Skilling" onchange="calculate()"> Learning & Skilling</label><br>
-<label><input type="checkbox" value="OM&OD" onchange="calculate()"> OM&OD</label><br>
-<label><input type="checkbox" value="TS&D" onchange="calculate()"> TS&D</label>
+<label><strong>Units:</strong></label>
+<select id="unitSelect" onchange="changeUnit()">
+<option value="1">Actual</option>
+<option value="1000">Thousands</option>
+<option value="1000000">Millions</option>
+</select>
 </div>
 
-<table class="capability-table">
+<div class="section">
+<h2>Enter Service Revenues</h2>
+
+<div class="service-row">
+<div class="label">Strategy & Consulting (S&C)</div>
+<input type="text" id="scRevenue" oninput="calculate()" />
+<div class="percent" id="scPercent">0%</div>
+</div>
+
+<div class="service-row">
+<div class="label">Technology</div>
+<input type="text" id="techRevenue" oninput="calculate()" />
+<div class="percent" id="techPercent">0%</div>
+</div>
+
+<div class="service-row">
+<div class="label">Operations</div>
+<input type="text" id="opsRevenue" oninput="calculate()" />
+<div class="percent" id="opsPercent">0%</div>
+</div>
+
+<div class="service-row">
+<div class="label"><strong>Total Contract Revenue</strong></div>
+<input type="text" id="totalRevenue" readonly />
+<div class="percent"><strong>100%</strong></div>
+</div>
+
+</div>
+
+<div class="section">
+<h2>T&O Revenue Summary</h2>
+
+<div class="service-row">
+<div class="label">T&O Revenue</div>
+<input type="text" id="tnORevenue" readonly />
+<div class="percent" id="tnOPercent">0%</div>
+</div>
+
+<div style="margin-top:10px;">
+<strong>T&O Allocation % required to meet S&C Revenues = 
+<span id="allocationPercent">0%</span>
+</strong>
+</div>
+
+</div>
+
+<div class="section">
+<h2>Select Capabilities</h2>
+
+<select id="capabilities" multiple size="5" onchange="buildCapabilityTable()">
+<option>Change & Human Experience</option>
+<option>HRT</option>
+<option>Learning & Skilling</option>
+<option>OM&OD</option>
+<option>TS&D</option>
+</select>
+
+<table id="capTable" style="display:none;">
 <thead>
 <tr>
 <th>Capability</th>
-<th>% Allocation</th>
-<th>T&O Revenue</th>
+<th>% T&O Revenue</th>
+<th>Total Contract Revenue</th>
 </tr>
 </thead>
-<tbody id="capabilityTable"></tbody>
+<tbody id="capBody">
+</tbody>
 </table>
 
+</div>
+
 <script>
+
+let currentUnit = 1;
+
 function parseNumber(val){
     return parseFloat(val.replace(/,/g,'')) || 0;
 }
 
-function formatNumber(num){
-    return num.toLocaleString(undefined,{minimumFractionDigits:0, maximumFractionDigits:0});
+function formatNumber(val){
+    return val.toLocaleString(undefined, {maximumFractionDigits:0});
+}
+
+function changeUnit(){
+    currentUnit = parseFloat(document.getElementById("unitSelect").value);
+    calculate();
 }
 
 function calculate(){
 
-    let sc = parseNumber(document.getElementById('sc').value);
-    let tech = parseNumber(document.getElementById('tech').value);
-    let ops = parseNumber(document.getElementById('ops').value);
-    let scTO = parseNumber(document.getElementById('scTO').value);
+    let sc = parseNumber(document.getElementById("scRevenue").value) * currentUnit;
+    let tech = parseNumber(document.getElementById("techRevenue").value) * currentUnit;
+    let ops = parseNumber(document.getElementById("opsRevenue").value) * currentUnit;
 
     let total = sc + tech + ops;
 
-    document.getElementById('totalRevenue').value = formatNumber(total);
+    document.getElementById("totalRevenue").value = formatNumber(total/currentUnit);
 
-    let tnoPercent = sc ? (scTO / sc) * 100 : 0;
-
-    let techTO = tech * tnoPercent / 100;
-    let opsTO = ops * tnoPercent / 100;
-
-    let services = [
-        {name:"S&C", value:sc, to:scTO},
-        {name:"Technology", value:tech, to:techTO},
-        {name:"Operations", value:ops, to:opsTO}
-    ];
-
-    let table = "";
-    services.forEach(s=>{
-        let percentTotal = total ? (s.value/total*100).toFixed(2) : "0.00";
-        let percentTO = s.value ? (s.to/s.value*100).toFixed(2) : "0.00";
-        table += `<tr>
-            <td>${s.name}</td>
-            <td class="readonly">${formatNumber(s.value)}</td>
-            <td class="readonly">${percentTotal}%</td>
-            <td>${formatNumber(s.to)}</td>
-            <td>${percentTO}%</td>
-        </tr>`;
-    });
-
-    document.getElementById('summaryTable').innerHTML = table;
-
-    document.getElementById('finalPercent').innerText =
-        `T&O Allocation % required to meet S&C Revenues = ${tnoPercent.toFixed(2)}%`;
-
-    // Capabilities
-    let checked = document.querySelectorAll('input[type="checkbox"]:checked');
-    let capTable = "";
-    if(checked.length>0){
-
-        let equalPercent = tnoPercent / checked.length;
-
-        checked.forEach(box=>{
-            let revenue = sc * equalPercent / 100;
-            capTable += `<tr>
-                <td>${box.value}</td>
-                <td>${equalPercent.toFixed(2)}%</td>
-                <td>${formatNumber(revenue)}</td>
-            </tr>`;
-        });
+    if(total === 0){
+        document.getElementById("scPercent").innerText = "0%";
+        document.getElementById("techPercent").innerText = "0%";
+        document.getElementById("opsPercent").innerText = "0%";
+        document.getElementById("tnORevenue").value = "0";
+        document.getElementById("tnOPercent").innerText = "0%";
+        document.getElementById("allocationPercent").innerText = "0%";
+        return;
     }
 
-    document.getElementById('capabilityTable').innerHTML = capTable;
+    let scPct = (sc/total)*100;
+    let techPct = (tech/total)*100;
+    let opsPct = (ops/total)*100;
 
-    // reformat input fields with commas
-    document.getElementById('sc').value = formatNumber(sc);
-    document.getElementById('tech').value = formatNumber(tech);
-    document.getElementById('ops').value = formatNumber(ops);
-    document.getElementById('scTO').value = formatNumber(scTO);
+    document.getElementById("scPercent").innerText = scPct.toFixed(1)+"%";
+    document.getElementById("techPercent").innerText = techPct.toFixed(1)+"%";
+    document.getElementById("opsPercent").innerText = opsPct.toFixed(1)+"%";
+
+    let tnO = tech + ops;
+    let tnOPct = (tnO/total)*100;
+
+    document.getElementById("tnORevenue").value = formatNumber(tnO/currentUnit);
+    document.getElementById("tnOPercent").innerText = tnOPct.toFixed(1)+"%";
+    document.getElementById("allocationPercent").innerText = tnOPct.toFixed(1)+"%";
+
+    updateCapabilityTable(tnO, tnOPct);
 }
 
-calculate();
+function buildCapabilityTable(){
+    let select = document.getElementById("capabilities");
+    let selected = Array.from(select.selectedOptions).map(o=>o.value);
+
+    let tbody = document.getElementById("capBody");
+    tbody.innerHTML = "";
+
+    if(selected.length === 0){
+        document.getElementById("capTable").style.display="none";
+        return;
+    }
+
+    document.getElementById("capTable").style.display="table";
+
+    let equalPercent = 100/selected.length;
+
+    selected.forEach(cap=>{
+        let row = document.createElement("tr");
+
+        row.innerHTML = `
+        <td>${cap}</td>
+        <td><input type="number" value="${equalPercent.toFixed(1)}" oninput="capPercentChanged()" style="width:80px;">%</td>
+        <td class="capRevenue">0</td>
+        `;
+
+        tbody.appendChild(row);
+    });
+
+    // Add Not Applicable row
+    let row = document.createElement("tr");
+    row.className="not-applicable";
+    row.innerHTML=`
+        <td>Not Applicable</td>
+        <td id="notApplicablePercent">0%</td>
+        <td id="notApplicableRevenue">0</td>
+    `;
+    tbody.appendChild(row);
+
+    calculate();
+}
+
+function capPercentChanged(){
+    calculate();
+}
+
+function updateCapabilityTable(tnORevenue, tnOPct){
+
+    let table = document.getElementById("capTable");
+    if(table.style.display==="none") return;
+
+    let rows = document.querySelectorAll("#capBody tr");
+    let allowedPercent = tnOPct;
+
+    let totalUsed = 0;
+
+    rows.forEach((row,index)=>{
+        if(index === rows.length-1) return; // skip Not Applicable
+        let input = row.querySelector("input");
+        let pct = parseFloat(input.value)||0;
+        totalUsed += pct;
+    });
+
+    if(totalUsed > allowedPercent){
+        alert("Total capability % cannot exceed T&O Allocation %");
+        return;
+    }
+
+    rows.forEach((row,index)=>{
+        if(index === rows.length-1) return;
+        let input = row.querySelector("input");
+        let pct = parseFloat(input.value)||0;
+        let revenue = tnORevenue * (pct/allowedPercent);
+        row.querySelector(".capRevenue").innerText = formatNumber(revenue/currentUnit);
+    });
+
+    let remaining = allowedPercent - totalUsed;
+    if(remaining < 0) remaining = 0;
+
+    document.getElementById("notApplicablePercent").innerText = remaining.toFixed(1)+"%";
+    let notAppRevenue = tnORevenue * (remaining/allowedPercent);
+    document.getElementById("notApplicableRevenue").innerText = formatNumber(notAppRevenue/currentUnit);
+}
+
 </script>
 
 </body>
